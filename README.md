@@ -1,1 +1,1 @@
-# migrationrunner
+# migrationrunner [![Build Status](https://travis-ci.com/mhogar/migrationrunner.svg?branch=master)](https://travis-ci.com/mhogar/migrationrunner) [![Coverage Status](https://coveralls.io/repos/github/mhogar/migrationrunner/badge.svg)](https://coveralls.io/github/mhogar/migrationrunner)
