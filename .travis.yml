@@ -1,0 +1,16 @@
+language: go
+os: linux
+dist: bionic
+env:
+  - GO111MODULE=on
+go:
+  - 1.14.x
+
+jobs:
+  include:
+    - stage: Test
+      install:
+        - go get github.com/mattn/goveralls
+      script:
+        - go test -v -covermode=count -coverprofile=coverage.out
+        - $GOPATH/bin/goveralls -coverprofile=coverage.out -service=travis-ci
