@@ -18,6 +18,12 @@ type MigrationRunner struct {
 func (m MigrationRunner) MigrateUp() error {
 	log.Println("Migrating Up")
 
+	log.Println("Running setup")
+	err := m.MigrationCRUD.Setup()
+	if err != nil {
+		return chainError("error running migration setup", err)
+	}
+
 	migrations := m.MigrationRepository.GetMigrations()
 
 	//get latest timestamp
@@ -63,6 +69,12 @@ func (m MigrationRunner) MigrateUp() error {
 // If there is no latest timestamp, an error will be returned. Will return any other errors that are encountered.
 func (m MigrationRunner) MigrateDown() error {
 	log.Println("Migrating Down")
+
+	log.Println("Running setup")
+	err := m.MigrationCRUD.Setup()
+	if err != nil {
+		return chainError("error running migration setup", err)
+	}
 
 	migrations := m.MigrationRepository.GetMigrations()
 

@@ -14,6 +14,10 @@ type Migration interface {
 
 // MigrationCRUD is an interface for preforming CRUD operations on a migration.
 type MigrationCRUD interface {
+	// Setup performs setup operations needed before other CRUD operations can be used.
+	// Returns any errors.
+	Setup() error
+
 	// CreateMigration creates a new migration with the given timestamp and returns any errors.
 	CreateMigration(timestamp string) error
 
