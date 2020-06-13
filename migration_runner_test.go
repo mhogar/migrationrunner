@@ -14,11 +14,16 @@ type MigrationRunnerTestSuite struct {
 	suite.Suite
 	MigrationRepositoryMock mocks.MigrationRepository
 	MigrationCRUDMock       mocks.MigrationCRUD
+	MigrationRunner         migrationrunner.MigrationRunner
 }
 
 func (suite *MigrationRunnerTestSuite) SetupTest() {
 	suite.MigrationRepositoryMock = mocks.MigrationRepository{}
 	suite.MigrationCRUDMock = mocks.MigrationCRUD{}
+	suite.MigrationRunner = migrationrunner.MigrationRunner{
+		MigrationRepository: &suite.MigrationRepositoryMock,
+		MigrationCRUD:       &suite.MigrationCRUDMock,
+	}
 }
 
 func (suite *MigrationRunnerTestSuite) TestMigrateUp_WithNoLatestTimestamp_RunsAllMigrations() {
@@ -35,7 +40,7 @@ func (suite *MigrationRunnerTestSuite) TestMigrateUp_WithNoLatestTimestamp_RunsA
 	suite.MigrationCRUDMock.On("CreateMigration", mock.Anything).Return(nil)
 
 	//act
-	err := migrationrunner.MigrateUp(&suite.MigrationRepositoryMock, &suite.MigrationCRUDMock)
+	err := suite.MigrationRunner.MigrateUp()
 
 	//assert
 	suite.NoError(err)
@@ -73,7 +78,7 @@ func (suite *MigrationRunnerTestSuite) TestMigrateUp_RunsAllMigrationsWithTimest
 	suite.MigrationCRUDMock.On("CreateMigration", mock.Anything).Return(nil)
 
 	//act
-	err := migrationrunner.MigrateUp(&suite.MigrationRepositoryMock, &suite.MigrationCRUDMock)
+	err := suite.MigrationRunner.MigrateUp()
 
 	//assert
 	suite.NoError(err)
@@ -105,7 +110,7 @@ func (suite *MigrationRunnerTestSuite) TestMigrateUp_WhereGetLatestTimestampRetu
 	suite.MigrationCRUDMock.On("GetLatestTimestamp").Return("", false, errors.New(errMessage))
 
 	//act
-	err := migrationrunner.MigrateUp(&suite.MigrationRepositoryMock, &suite.MigrationCRUDMock)
+	err := suite.MigrationRunner.MigrateUp()
 
 	//assert
 	suite.Require().Error(err)
@@ -128,7 +133,7 @@ func (suite *MigrationRunnerTestSuite) TestMigrateUp_WhereMigrationUpReturnsErro
 	suite.MigrationCRUDMock.On("GetLatestTimestamp").Return("0", true, nil)
 
 	//act
-	err := migrationrunner.MigrateUp(&suite.MigrationRepositoryMock, &suite.MigrationCRUDMock)
+	err := suite.MigrationRunner.MigrateUp()
 
 	//assert
 	suite.Require().Error(err)
@@ -152,7 +157,7 @@ func (suite *MigrationRunnerTestSuite) TestMigrateUp_WhereCreateMigrationReturns
 	suite.MigrationCRUDMock.On("CreateMigration", mock.Anything).Return(errors.New(errMessage))
 
 	//act
-	err := migrationrunner.MigrateUp(&suite.MigrationRepositoryMock, &suite.MigrationCRUDMock)
+	err := suite.MigrationRunner.MigrateUp()
 
 	//assert
 	suite.Require().Error(err)
@@ -167,7 +172,7 @@ func (suite *MigrationRunnerTestSuite) TestMigrateDown_WhereGetLatestTimestampRe
 	suite.MigrationCRUDMock.On("GetLatestTimestamp").Return("", false, errors.New(errMessage))
 
 	//act
-	err := migrationrunner.MigrateDown(&suite.MigrationRepositoryMock, &suite.MigrationCRUDMock)
+	err := suite.MigrationRunner.MigrateDown()
 
 	//assert
 	suite.Require().Error(err)
@@ -180,7 +185,7 @@ func (suite *MigrationRunnerTestSuite) TestMigrateDown_WithNoLatestTimestamp_Ret
 	suite.MigrationCRUDMock.On("GetLatestTimestamp").Return("", false, nil)
 
 	//act
-	err := migrationrunner.MigrateDown(&suite.MigrationRepositoryMock, &suite.MigrationCRUDMock)
+	err := suite.MigrationRunner.MigrateDown()
 
 	//assert
 	suite.Require().Error(err)
@@ -200,7 +205,7 @@ func (suite *MigrationRunnerTestSuite) TestMigrateDown_WhereLatestTimestampNotFo
 	suite.MigrationCRUDMock.On("GetLatestTimestamp").Return("05", true, nil)
 
 	//act
-	err := migrationrunner.MigrateDown(&suite.MigrationRepositoryMock, &suite.MigrationCRUDMock)
+	err := suite.MigrationRunner.MigrateDown()
 
 	//assert
 	suite.Require().Error(err)
@@ -224,7 +229,7 @@ func (suite *MigrationRunnerTestSuite) TestMigrateDown_WhereMigrationDownReturns
 	suite.MigrationCRUDMock.On("DeleteMigrationByTimestamp", mock.Anything).Return(nil)
 
 	//act
-	err := migrationrunner.MigrateDown(&suite.MigrationRepositoryMock, &suite.MigrationCRUDMock)
+	err := suite.MigrationRunner.MigrateDown()
 
 	//assert
 	suite.Require().Error(err)
@@ -247,7 +252,7 @@ func (suite *MigrationRunnerTestSuite) TestMigrateDown_WhereDeleteMigrationRetur
 	suite.MigrationCRUDMock.On("DeleteMigrationByTimestamp", mock.Anything).Return(errors.New(errMessage))
 
 	//act
-	err := migrationrunner.MigrateDown(&suite.MigrationRepositoryMock, &suite.MigrationCRUDMock)
+	err := suite.MigrationRunner.MigrateDown()
 
 	//assert
 	suite.Require().Error(err)
@@ -269,7 +274,7 @@ func (suite *MigrationRunnerTestSuite) TestMigrateDown_RunsDownFunctionForMigrat
 	suite.MigrationCRUDMock.On("DeleteMigrationByTimestamp", mock.Anything).Return(nil)
 
 	//act
-	err := migrationrunner.MigrateDown(&suite.MigrationRepositoryMock, &suite.MigrationCRUDMock)
+	err := suite.MigrationRunner.MigrateDown()
 
 	//assert
 	suite.NoError(err)

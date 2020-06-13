@@ -5,19 +5,25 @@ import (
 	"log"
 )
 
+// MigrationRunner encapsulates the migration methods and dependencies.
+type MigrationRunner struct {
+	MigrationRepository MigrationRepository
+	MigrationCRUD       MigrationCRUD
+}
+
 // MigrateUp runs the Up method for all migrations returned by migrationRepo that are newer than the latest timestamp fetched by db;
 // and will create a new migration for every one that's run. If there is no latest timestamp, all migrations will be run.
 // If any errors are encountered, the whole function will be aborted and any migrations yet to run will not be run.
 // Returns the errors encountered.
-func MigrateUp(migrationRepo MigrationRepository, db MigrationCRUD) error {
+func (m MigrationRunner) MigrateUp() error {
 	log.Println("Migrating Up")
 
-	migrations := migrationRepo.GetMigrations()
+	migrations := m.MigrationRepository.GetMigrations()
 
 	//get latest timestamp
-	latestTimestamp, hasLatest, err := db.GetLatestTimestamp()
+	latestTimestamp, hasLatest, err := m.MigrationCRUD.GetLatestTimestamp()
 	if err != nil {
-		return ChainError("error getting latest timestamp", err)
+		return chainError("error getting latest timestamp", err)
 	}
 
 	//print the timestamp if it exists
@@ -36,13 +42,13 @@ func MigrateUp(migrationRepo MigrationRepository, db MigrationCRUD) error {
 
 			err = migration.Up()
 			if err != nil {
-				return ChainError("error running migration", err)
+				return chainError("error running migration", err)
 			}
 
 			//save the migration to db to mark it as run
-			err = db.CreateMigration(timestamp)
+			err = m.MigrationCRUD.CreateMigration(timestamp)
 			if err != nil {
-				return ChainError("error saving migration", err)
+				return chainError("error saving migration", err)
 			}
 		} else {
 			log.Println("Skipping", timestamp)
@@ -55,15 +61,15 @@ func MigrateUp(migrationRepo MigrationRepository, db MigrationCRUD) error {
 
 // MigrateDown runs the Down method for the migration whose timestamp matches the latest timestamp returned by db.
 // If there is no latest timestamp, an error will be returned. Will return any other errors that are encountered.
-func MigrateDown(migrationRepo MigrationRepository, db MigrationCRUD) error {
+func (m MigrationRunner) MigrateDown() error {
 	log.Println("Migrating Down")
 
-	migrations := migrationRepo.GetMigrations()
+	migrations := m.MigrationRepository.GetMigrations()
 
 	//get latest timestamp
-	latestTimestamp, hasLatest, err := db.GetLatestTimestamp()
+	latestTimestamp, hasLatest, err := m.MigrationCRUD.GetLatestTimestamp()
 	if err != nil {
-		return ChainError("error getting latest timestamp", err)
+		return chainError("error getting latest timestamp", err)
 	}
 
 	//exit if no latest
@@ -90,13 +96,13 @@ func MigrateDown(migrationRepo MigrationRepository, db MigrationCRUD) error {
 	//run the down function
 	err = latestMigration.Down()
 	if err != nil {
-		return ChainError("error running migration", err)
+		return chainError("error running migration", err)
 	}
 
 	//remove migration from database
-	err = db.DeleteMigrationByTimestamp(latestTimestamp)
+	err = m.MigrationCRUD.DeleteMigrationByTimestamp(latestTimestamp)
 	if err != nil {
-		return ChainError("error deleting migration", err)
+		return chainError("error deleting migration", err)
 	}
 
 	log.Println("Finished running migrations.")
