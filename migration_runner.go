@@ -34,30 +34,28 @@ func (m MigrationRunner) MigrateUp() error {
 
 	//print the timestamp if it exists
 	if !hasLatest {
-		log.Println("No timestamps found.")
+		log.Println("No latest timestamp found.")
 	} else {
 		log.Println("Latest timestamp:", latestTimestamp)
 	}
 
 	//run all migrations that are newer
 	for _, migration := range migrations {
-		timestamp := migration.GetTimestamp()
+		if !hasLatest || migration.Timestamp > latestTimestamp {
+			log.Println("Running", migration.Timestamp, "-", migration.Description)
 
-		if !hasLatest || timestamp > latestTimestamp {
-			log.Println("Running", timestamp)
-
-			err = migration.Up()
+			err = migration.Migrator.Up()
 			if err != nil {
 				return chainError("error running migration", err)
 			}
 
 			//save the migration to db to mark it as run
-			err = m.MigrationCRUD.CreateMigration(timestamp)
+			err = m.MigrationCRUD.CreateMigration(migration.Timestamp)
 			if err != nil {
 				return chainError("error saving migration", err)
 			}
 		} else {
-			log.Println("Skipping", timestamp)
+			log.Println("Skipping", migration.Timestamp)
 		}
 	}
 
@@ -89,29 +87,31 @@ func (m MigrationRunner) MigrateDown() error {
 		return errors.New("no migrations to migrate down")
 	}
 
-	var latestMigration Migration = nil
+	var latestMigration Migration
+	migrationFound := false
 
 	//find migration that matches the latest timestamp
 	for _, migration := range migrations {
-		if migration.GetTimestamp() == latestTimestamp {
+		if migration.Timestamp == latestTimestamp {
 			latestMigration = migration
+			migrationFound = true
 			break
 		}
 	}
 
-	if latestMigration == nil {
+	if !migrationFound {
 		return errors.New("could not find migration with timestamp " + latestTimestamp)
 	}
 
-	log.Println("Running " + latestTimestamp)
+	log.Println("Running", latestTimestamp, "-", latestMigration.Description)
 
 	//run the down function
-	err = latestMigration.Down()
+	err = latestMigration.Migrator.Down()
 	if err != nil {
 		return chainError("error running migration", err)
 	}
 
-	//remove migration from database
+	//delete the migration
 	err = m.MigrationCRUD.DeleteMigrationByTimestamp(latestTimestamp)
 	if err != nil {
 		return chainError("error deleting migration", err)

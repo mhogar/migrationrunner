@@ -41,12 +41,7 @@ func (suite *MigrationRunnerTestSuite) TestMigrateUp_WithErrorRunningSetup_Retur
 
 func (suite *MigrationRunnerTestSuite) TestMigrateUp_WithNoLatestTimestamp_RunsAllMigrations() {
 	//arrange
-	migrationMocks := createMigrationMocks("01", "04", "08", "10")
-
-	migrations := make([]migrationrunner.Migration, len(migrationMocks))
-	for i, _ := range migrationMocks {
-		migrations[i] = &migrationMocks[i]
-	}
+	migrations := createMigrations("01", "04", "08", "10")
 
 	suite.MigrationCRUDMock.On("Setup").Return(nil)
 	suite.MigrationRepositoryMock.On("GetMigrations").Return(migrations)
@@ -59,10 +54,10 @@ func (suite *MigrationRunnerTestSuite) TestMigrateUp_WithNoLatestTimestamp_RunsA
 	//assert
 	suite.NoError(err)
 
-	migrationMocks[0].AssertCalled(suite.T(), "Up")
-	migrationMocks[1].AssertCalled(suite.T(), "Up")
-	migrationMocks[2].AssertCalled(suite.T(), "Up")
-	migrationMocks[3].AssertCalled(suite.T(), "Up")
+	getMigratorMock(migrations[0]).AssertCalled(suite.T(), "Up")
+	getMigratorMock(migrations[1]).AssertCalled(suite.T(), "Up")
+	getMigratorMock(migrations[2]).AssertCalled(suite.T(), "Up")
+	getMigratorMock(migrations[3]).AssertCalled(suite.T(), "Up")
 
 	suite.MigrationCRUDMock.AssertCalled(suite.T(), "CreateMigration", mock.MatchedBy(func(timestamp string) bool {
 		return timestamp == "01"
@@ -80,12 +75,7 @@ func (suite *MigrationRunnerTestSuite) TestMigrateUp_WithNoLatestTimestamp_RunsA
 
 func (suite *MigrationRunnerTestSuite) TestMigrateUp_RunsAllMigrationsWithTimestampGreaterThanLatest() {
 	//arrange
-	migrationMocks := createMigrationMocks("01", "04", "08", "10")
-
-	migrations := make([]migrationrunner.Migration, len(migrationMocks))
-	for i, _ := range migrationMocks {
-		migrations[i] = &migrationMocks[i]
-	}
+	migrations := createMigrations("01", "04", "08", "10")
 
 	suite.MigrationCRUDMock.On("Setup").Return(nil)
 	suite.MigrationRepositoryMock.On("GetMigrations").Return(migrations)
@@ -98,10 +88,10 @@ func (suite *MigrationRunnerTestSuite) TestMigrateUp_RunsAllMigrationsWithTimest
 	//assert
 	suite.NoError(err)
 
-	migrationMocks[0].AssertNotCalled(suite.T(), "Up")
-	migrationMocks[1].AssertNotCalled(suite.T(), "Up")
-	migrationMocks[2].AssertCalled(suite.T(), "Up")
-	migrationMocks[3].AssertCalled(suite.T(), "Up")
+	getMigratorMock(migrations[0]).AssertNotCalled(suite.T(), "Up")
+	getMigratorMock(migrations[1]).AssertNotCalled(suite.T(), "Up")
+	getMigratorMock(migrations[2]).AssertCalled(suite.T(), "Up")
+	getMigratorMock(migrations[3]).AssertCalled(suite.T(), "Up")
 
 	suite.MigrationCRUDMock.AssertNotCalled(suite.T(), "CreateMigration", mock.MatchedBy(func(timestamp string) bool {
 		return timestamp == "01"
@@ -136,13 +126,10 @@ func (suite *MigrationRunnerTestSuite) TestMigrateUp_WhereGetLatestTimestampRetu
 func (suite *MigrationRunnerTestSuite) TestMigrateUp_WhereMigrationUpReturnsError_ReturnsError() {
 	//arrange
 	errMessage := "Up mock error"
-
-	migrationMock := mocks.Migration{}
-	migrationMock.On("GetTimestamp").Return("1")
-	migrationMock.On("Up").Return(errors.New(errMessage))
+	migration := createMigration("01", errors.New(errMessage), nil)
 
 	migrations := []migrationrunner.Migration{
-		&migrationMock,
+		migration,
 	}
 
 	suite.MigrationCRUDMock.On("Setup").Return(nil)
@@ -161,12 +148,9 @@ func (suite *MigrationRunnerTestSuite) TestMigrateUp_WhereCreateMigrationReturns
 	//arrange
 	errMessage := "CreateMigration mock error"
 
-	migrationMock := mocks.Migration{}
-	migrationMock.On("GetTimestamp").Return("1")
-	migrationMock.On("Up").Return(nil)
-
+	migration := createMigration("01", nil, nil)
 	migrations := []migrationrunner.Migration{
-		&migrationMock,
+		migration,
 	}
 
 	suite.MigrationCRUDMock.On("Setup").Return(nil)
@@ -227,12 +211,7 @@ func (suite *MigrationRunnerTestSuite) TestMigrateDown_WithNoLatestTimestamp_Ret
 
 func (suite *MigrationRunnerTestSuite) TestMigrateDown_WhereLatestTimestampNotFoundInMigrations_ReturnsError() {
 	//arrange
-	migrationMocks := createMigrationMocks("01", "04", "08", "10")
-
-	migrations := make([]migrationrunner.Migration, len(migrationMocks))
-	for i, _ := range migrationMocks {
-		migrations[i] = &migrationMocks[i]
-	}
+	migrations := createMigrations("01", "04", "08", "10")
 
 	suite.MigrationCRUDMock.On("Setup").Return(nil)
 	suite.MigrationRepositoryMock.On("GetMigrations").Return(migrations)
@@ -249,18 +228,15 @@ func (suite *MigrationRunnerTestSuite) TestMigrateDown_WhereLatestTimestampNotFo
 func (suite *MigrationRunnerTestSuite) TestMigrateDown_WhereMigrationDownReturnsError_ReturnError() {
 	//arrange
 	errMessage := "Down mock error"
-
-	migrationMock := mocks.Migration{}
-	migrationMock.On("GetTimestamp").Return("1")
-	migrationMock.On("Down").Return(errors.New(errMessage))
+	migration := createMigration("01", nil, errors.New(errMessage))
 
 	migrations := []migrationrunner.Migration{
-		&migrationMock,
+		migration,
 	}
 
 	suite.MigrationCRUDMock.On("Setup").Return(nil)
 	suite.MigrationRepositoryMock.On("GetMigrations").Return(migrations)
-	suite.MigrationCRUDMock.On("GetLatestTimestamp").Return("1", true, nil)
+	suite.MigrationCRUDMock.On("GetLatestTimestamp").Return("01", true, nil)
 	suite.MigrationCRUDMock.On("DeleteMigrationByTimestamp", mock.Anything).Return(nil)
 
 	//act
@@ -275,12 +251,7 @@ func (suite *MigrationRunnerTestSuite) TestMigrateDown_WhereDeleteMigrationRetur
 	//arrange
 	errMessage := "DeleteMigrationByTimestamp mock error"
 
-	migrationMocks := createMigrationMocks("01", "04", "08", "10")
-
-	migrations := make([]migrationrunner.Migration, len(migrationMocks))
-	for i, _ := range migrationMocks {
-		migrations[i] = &migrationMocks[i]
-	}
+	migrations := createMigrations("01", "04", "08", "10")
 
 	suite.MigrationCRUDMock.On("Setup").Return(nil)
 	suite.MigrationRepositoryMock.On("GetMigrations").Return(migrations)
@@ -298,12 +269,7 @@ func (suite *MigrationRunnerTestSuite) TestMigrateDown_WhereDeleteMigrationRetur
 func (suite *MigrationRunnerTestSuite) TestMigrateDown_RunsDownFunctionForMigrationMatchingLatestTimestamp() {
 	//arrange
 	latestTimestamp := "08"
-	migrationMocks := createMigrationMocks("01", "04", "08", "10")
-
-	migrations := make([]migrationrunner.Migration, len(migrationMocks))
-	for i, _ := range migrationMocks {
-		migrations[i] = &migrationMocks[i]
-	}
+	migrations := createMigrations("01", "04", "08", "10")
 
 	suite.MigrationCRUDMock.On("Setup").Return(nil)
 	suite.MigrationRepositoryMock.On("GetMigrations").Return(migrations)
@@ -316,10 +282,10 @@ func (suite *MigrationRunnerTestSuite) TestMigrateDown_RunsDownFunctionForMigrat
 	//assert
 	suite.NoError(err)
 
-	migrationMocks[0].AssertNotCalled(suite.T(), "Down")
-	migrationMocks[1].AssertNotCalled(suite.T(), "Down")
-	migrationMocks[2].AssertCalled(suite.T(), "Down")
-	migrationMocks[3].AssertNotCalled(suite.T(), "Down")
+	getMigratorMock(migrations[0]).AssertNotCalled(suite.T(), "Down")
+	getMigratorMock(migrations[1]).AssertNotCalled(suite.T(), "Down")
+	getMigratorMock(migrations[2]).AssertCalled(suite.T(), "Down")
+	getMigratorMock(migrations[3]).AssertNotCalled(suite.T(), "Down")
 
 	suite.MigrationCRUDMock.AssertCalled(suite.T(), "DeleteMigrationByTimestamp", mock.MatchedBy(func(timestamp string) bool {
 		return timestamp == latestTimestamp
@@ -330,15 +296,28 @@ func TestMigrationRunnerTestSuite(t *testing.T) {
 	suite.Run(t, &MigrationRunnerTestSuite{})
 }
 
-func createMigrationMocks(timestamps ...string) []mocks.Migration {
-	migrationMocks := make([]mocks.Migration, len(timestamps))
+func createMigration(timestamp string, upErr error, downErr error) migrationrunner.Migration {
+	migratorMock := mocks.Migrator{}
+	migratorMock.On("Up").Return(upErr)
+	migratorMock.On("Down").Return(downErr)
+
+	return migrationrunner.Migration{
+		Timestamp:   timestamp,
+		Description: "Does some migration stuff",
+		Migrator:    &migratorMock,
+	}
+}
+
+func createMigrations(timestamps ...string) []migrationrunner.Migration {
+	migrations := make([]migrationrunner.Migration, len(timestamps))
 
 	for i, timestamp := range timestamps {
-		migrationMocks[i] = mocks.Migration{}
-		migrationMocks[i].On("GetTimestamp").Return(timestamp)
-		migrationMocks[i].On("Up").Return(nil)
-		migrationMocks[i].On("Down").Return(nil)
+		migrations[i] = createMigration(timestamp, nil, nil)
 	}
 
-	return migrationMocks
+	return migrations
+}
+
+func getMigratorMock(migration migrationrunner.Migration) *mocks.Migrator {
+	return migration.Migrator.(*mocks.Migrator)
 }
