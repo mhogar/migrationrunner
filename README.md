@@ -15,7 +15,7 @@ View the [GoDocs](https://pkg.go.dev/github.com/mhogar/migrationrunner) for spec
 - `MigrationRepository`: this interface simply fetches a slice of Migrations to be run by the runner
 - `MigrationCRUD`: this interface acts as a wrapper for your data solution enabling the runner to act abstractly
 
-Once the interfaces have been implemnted to adhere to your needs, the `MigrationRunner` struct can be created. Basic usage example:
+Once the interfaces have been implemented to adhere to your needs, the `MigrationRunner` struct can be created. Basic usage example:
 ```go
 func main() {
     crud := MyMigrationCRUD{} //your MigrationCRUD implementation
