@@ -5,16 +5,21 @@ import (
 	"log"
 )
 
-// MigrationRunner encapsulates the migration methods and dependencies.
 type MigrationRunner struct {
+	// Implementation of the MigrationRepository interface that will fetch the migrations to run.
 	MigrationRepository MigrationRepository
-	MigrationCRUD       MigrationCRUD
+
+	// Implementation of the MigrationCRUD interface that will perform the CRUD operations on the data solution.
+	MigrationCRUD MigrationCRUD
 }
 
-// MigrateUp runs the Up method for all migrations returned by migrationRepo that are newer than the latest timestamp fetched by db;
-// and will create a new migration for every one that's run. If there is no latest timestamp, all migrations will be run.
+// MigrateUp runs the Up method for all migrations returned by the MigrationRepository that are newer than the timestamp fetched by MigrationCRUD.GetLatestTimestamp.
+// This will trigger a call to MigrationCRUD.CreateMigration for every one that's run.
+//
+// If there is no latest timestamp, all migrations will be run.
+//
 // If any errors are encountered, the whole function will be aborted and any migrations yet to run will not be run.
-// Returns the errors encountered.
+// Returns any such errors encountered.
 func (m MigrationRunner) MigrateUp() error {
 	log.Println("Migrating Up")
 
@@ -63,8 +68,10 @@ func (m MigrationRunner) MigrateUp() error {
 	return nil
 }
 
-// MigrateDown runs the Down method for the migration whose timestamp matches the latest timestamp returned by db.
-// If there is no latest timestamp, an error will be returned. Will return any other errors that are encountered.
+// MigrateDown runs the Down method for the migration whose timestamp matches the latest timestamp returned by MigrationCRUD.GetLatestTimestamp.
+//
+// If there is no latest timestamp, an error will be returned.
+// Will also return any other errors that are encountered.
 func (m MigrationRunner) MigrateDown() error {
 	log.Println("Migrating Down")
 
